@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>BOMBA DO CÉU</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; background: linear-gradient(#87CEEB, #98D8E8); font-family: Arial; }
+    #game { position: relative; width: 100vw; height: 100vh; }
+    #player {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      width: 60px; height: 60px;
+      background: #0080FF;
+      border: 3px solid #0055CC;
+      border-radius: 8px;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+    .bomba {
+      position: absolute;
+      width: 40px; height: 40px;
+      background: radial-gradient(circle, #FF0000, #AA0000);
+      border-radius: 50%;
+      border: 2px solid #660000;
+      top: -50px;
+      z-index: 5;
+    }
+    #controles {
+      position: absolute;
+      bottom: 0; width: 100%;
+      display: flex; gap: 2px;
+      z-index: 20;
+    }
+    .btn {
+      width: 50%; height: 70px;
+      font-size: 20px; font-weight: bold;
+      background: #222; color: white;
+      border: none; touch-action: manipulation;
+    }
+    .btn:active { background: #555; }
+    #pontos {
+      position: absolute;
+      top: 15px; left: 15px;
+      font-size: 28px; color: white;
+      text-shadow: 2px 2px 4px black;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="pontos">AURA: 0</div>
+    <div id="player"></div>
+    <div id="controles">
+      <button class="btn" id="esq">← ESQUERDA</button>
+      <button class="btn" id="dir">DIREITA →</button>
+    </div>
+  </div>
+
+<script>
+const player = document.getElementById('player');
+const game = document.getElementById('game');
+const pontosTxt = document.getElementById('pontos');
+let playerX = window.innerWidth / 2;
+let pontos = 0;
+let spawnRate = 1200;
+let gameOver = false;
+let movendo = 0;
+
+// Posição inicial
+player.style.left = playerX + 'px';
+
+// Controles - agora funciona no celular e PC
+document.getElementById('esq').addEventListener('touchstart', e => { e.preventDefault(); movendo = -1; });
+document.getElementById('esq').addEventListener('touchend', () => movendo = 0);
+document.getElementById('dir').addEventListener('touchstart', e => { e.preventDefault(); movendo = 1; });
+document.getElementById('dir').addEventListener('touchend', () => movendo = 0);
+
+// PC
+document.addEventListener('keydown', e => {
+  if(e.key === 'ArrowLeft') movendo = -1;
+  if(e.key === 'ArrowRight') movendo = 1;
+});
+document.addEventListener('keyup', () => movendo = 0);
+
+// Loop de movimento
+function atualizarPlayer() {
+  if(gameOver) return;
+  if(movendo !== 0) {
+    playerX += movendo * 8;
+    playerX = Math.max(30, Math.min(window.innerWidth - 30, playerX));
+    player.style.left = playerX + 'px';
+  }
+  requestAnimationFrame(atualizarPlayer);
+}
+atualizarPlayer();
+
+// Spawn de bombas - AGORA CAI
+function criarBomba() {
+  if(gameOver) return;
+  const bomba = document.createElement('div');
+  bomba.className = 'bomba';
+  bomba.style.left = Math.random() * (window.innerWidth - 40) + 'px';
+  game.appendChild(bomba);
+  
+  let y = -50;
+  let velocidadeBomba = 3 + pontos * 0.1; // fica mais rápido com o tempo
+  
+  const cair = setInterval(() => {
+    if(gameOver) { clearInterval(cair); bomba.remove(); return; }
+    y += velocidadeBomba;
+    bomba.style.top = y + 'px';
+    
+    // Colisão - AGORA MATA O BLOCO
+    const b = bomba.getBoundingClientRect();
+    const p = player.getBoundingClientRect();
+    if(b.bottom > p.top && b.top < p.bottom && b.right > p.left && b.left < p.right) {
+      gameOver = true;
+      player.style.background = '#FF0000';
+      player.innerText = '💀';
+      setTimeout(() => {
+        alert('CABUM! VOCÊ VIROU NOOB BRAINROT 💀\nAura final: ' + pontos);
+        location.reload();
+      }, 500);
+    }
+    
+    // Passou = +1 aura
+    if(y > window.innerHeight) {
+      clearInterval(cair);
+      bomba.remove();
+      if(!gameOver) {
+        pontos++;
+        pontosTxt.innerText = 'AURA: ' + pontos;
+        if(pontos % 5 === 0) spawnRate = Math.max(300, spawnRate - 100);
+      }
+    }
+  }, 16);
+  
+  setTimeout(criarBomba, spawnRate);
+}
+
+// Começa o jogo
+setTimeout(criarBomba, 1000);
+</script>
+</body>
+</html>
